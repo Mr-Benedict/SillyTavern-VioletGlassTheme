@@ -98,12 +98,14 @@ body.bubblechat #chat .mes[is_user="true"] {
     border-color: var(--vg-accent-border);
     background-image: linear-gradient(135deg, var(--vg-accent-soft), transparent 55%);
     margin-left: clamp(16px, 7%, 110px);
-    width: calc(100% - clamp(16px, 7%, 110px));
+    margin-right: 10px;
+    width: calc(100% - clamp(16px, 7%, 110px) - 10px);
 }
 
 body.bubblechat #chat .mes:not([is_user="true"]) {
+    margin-left: 10px;
     margin-right: clamp(16px, 7%, 110px);
-    width: calc(100% - clamp(16px, 7%, 110px));
+    width: calc(100% - clamp(16px, 7%, 110px) - 10px);
 }
 
 /* ST pads the last message's avatar column by a full avatar height to make
