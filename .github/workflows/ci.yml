@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  verify:
+    name: dist is in sync with src
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node build.mjs
+      - name: Fail if dist/ was not rebuilt after src/ changes
+        run: |
+          if ! git diff --exit-code dist/; then
+            echo '::error::dist/ is out of sync with src/ — run `node build.mjs` and commit the result'
+            exit 1
+          fi
+
+  release:
+    name: Attach theme JSONs to release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create GitHub release with theme files
+        run: gh release create "$GITHUB_REF_NAME" dist/*.json --generate-notes --title "Violet Glass $GITHUB_REF_NAME"
+        env:
+          GH_TOKEN: ${{ github.token }}
