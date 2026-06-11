@@ -150,11 +150,14 @@ body.bubblechat #chat .mes:not([is_user="true"]) {
     box-shadow: var(--vg-shadow-1);
 }
 
-/* translateY, NOT margin-top: the holder is the body's first in-flow child,
-   so a top margin collapses through and shifts the whole body down, exposing
-   bare canvas as a stripe above the background layer */
+/* top (the holder is position:relative), NOT margin-top and NOT transform:
+   - margin-top collapses through the body's first in-flow child and shifts
+     the whole page down, exposing bare canvas as a stripe at the top;
+   - transform makes the holder the containing block for its position:fixed
+     descendants (.fillLeft/.fillRight nav panels), trapping them tiny
+     inside the bar. Relative `top` has neither side effect. */
 #top-settings-holder {
-    transform: translateY(6px);
+    top: 6px;
     align-items: center;
 }
 
