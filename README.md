@@ -1,10 +1,10 @@
 # Violet Glass
 
 <p align="center">
-  <img src="screenshots/dark-1.png" width="49%" alt="Violet Glass Dark — chat">
-  <img src="screenshots/light-1.png" width="49%" alt="Violet Glass Light — chat">
-  <img src="screenshots/dark-2.png" width="49%" alt="Violet Glass Dark — settings">
-  <img src="screenshots/light-2.png" width="49%" alt="Violet Glass Light — settings">
+  <img src="screenshots/dark-1.png?v=2" width="49%" alt="Violet Glass Dark — chat">
+  <img src="screenshots/light-1.png?v=2" width="49%" alt="Violet Glass Light — chat">
+  <img src="screenshots/dark-2.png?v=2" width="49%" alt="Violet Glass Dark — settings">
+  <img src="screenshots/light-2.png?v=2" width="49%" alt="Violet Glass Light — settings">
 </p>
 
 A modern glassmorphism theme pair for [SillyTavern](https://github.com/SillyTavern/SillyTavern) — frosted translucent panels, hairline borders, soft layered shadows, rounded message cards, and a violet/indigo accent. Ships as two standalone UI themes:
