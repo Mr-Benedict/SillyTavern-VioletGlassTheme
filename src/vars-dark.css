@@ -1,0 +1,37 @@
+/* ==========================================================================
+   Violet Glass — DARK tokens
+   Only color-bearing tokens live here; shape and motion tokens are shared
+   and defined at the top of base.css.
+   ========================================================================== */
+:root {
+    /* Accent ramp (violet/indigo) */
+    --vg-accent: #8b7bf4;
+    --vg-accent-2: #c084fc;
+    --vg-accent-strong: #a78bfa;
+    --vg-accent-soft: rgba(139, 123, 244, 0.16);
+    --vg-accent-glow: rgba(139, 123, 244, 0.45);
+    --vg-accent-border: rgba(139, 123, 244, 0.4);
+    --vg-on-accent: #ffffff;
+
+    /* Glass */
+    --vg-glass-border: rgba(255, 255, 255, 0.12);
+    --vg-glass-highlight: rgba(255, 255, 255, 0.07);
+    --vg-glass-inset: rgba(8, 6, 16, 0.35);
+    --vg-field-bg: rgba(8, 6, 16, 0.45);
+    --vg-quote-bg: rgba(8, 6, 16, 0.3);
+    --vg-backdrop: rgba(8, 6, 18, 0.5);
+
+    /* Layered shadows — tight and crisp, not 2010-blurry */
+    --vg-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.14);
+    --vg-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.28), 0 10px 28px rgba(0, 0, 0, 0.22);
+
+    /* Scrollbars */
+    --vg-scrollbar-thumb: rgba(167, 155, 230, 0.35);
+    --vg-scrollbar-thumb-hover: rgba(167, 155, 230, 0.55);
+
+    /* Ambient backdrop (painted over the background layer) */
+    --vg-ambient-a: rgba(124, 93, 250, 0.26);
+    --vg-ambient-b: rgba(52, 36, 145, 0.34);
+    --vg-ambient-c: rgba(192, 90, 220, 0.10);
+    --vg-vignette: rgba(8, 6, 18, 0.5);
+}

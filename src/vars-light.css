@@ -1,0 +1,44 @@
+/* ==========================================================================
+   Violet Glass — LIGHT tokens
+   Only color-bearing tokens live here; shape and motion tokens are shared
+   and defined at the top of base.css.
+
+   Accent is darkened vs. the dark variant (~6.6:1 on white) so accent text
+   and icons stay readable on pale glass. Shadows are violet-tinted, not
+   black, to avoid the "dirty" look colored themes get from neutral shadows.
+   ========================================================================== */
+:root {
+    /* Accent ramp (violet/indigo) */
+    --vg-accent: #5e40c4;
+    --vg-accent-2: #8b5cf6;
+    --vg-accent-strong: #6c47e0;
+    --vg-accent-soft: rgba(94, 64, 196, 0.12);
+    --vg-accent-glow: rgba(94, 64, 196, 0.3);
+    --vg-accent-border: rgba(94, 64, 196, 0.35);
+    --vg-on-accent: #ffffff;
+
+    /* Glass */
+    --vg-glass-border: rgba(110, 100, 170, 0.25);
+    /* Kept subtle: a strong white inner line reads glossy-plastic on light */
+    --vg-glass-highlight: rgba(255, 255, 255, 0.35);
+    --vg-glass-inset: rgba(86, 70, 160, 0.08);
+    /* Fields go near-white, not gray — gray inputs were the #1 dated tell */
+    --vg-field-bg: rgba(255, 255, 255, 0.6);
+    --vg-quote-bg: rgba(86, 70, 160, 0.08);
+    --vg-backdrop: rgba(44, 36, 84, 0.3);
+
+    /* Layered shadows (violet-tinted) — tight and crisp */
+    --vg-shadow-1: 0 1px 2px rgba(76, 64, 140, 0.1), 0 4px 12px rgba(76, 64, 140, 0.08);
+    --vg-shadow-2: 0 2px 6px rgba(76, 64, 140, 0.14), 0 10px 28px rgba(76, 64, 140, 0.12);
+
+    /* Scrollbars */
+    --vg-scrollbar-thumb: rgba(94, 64, 196, 0.3);
+    --vg-scrollbar-thumb-hover: rgba(94, 64, 196, 0.5);
+
+    /* Ambient backdrop — large soft light glows so the light variant stays
+       luminous even over dark or absent background images */
+    --vg-ambient-a: rgba(244, 241, 255, 0.5);
+    --vg-ambient-b: rgba(176, 160, 240, 0.32);
+    --vg-ambient-c: rgba(255, 255, 255, 0.45);
+    --vg-vignette: rgba(214, 206, 244, 0.35);
+}

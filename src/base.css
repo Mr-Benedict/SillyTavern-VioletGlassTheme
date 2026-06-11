@@ -1,0 +1,944 @@
+/* ==========================================================================
+   Violet Glass — shared surface styles
+   Combined at build time with a vars-*.css token block (see build.mjs).
+
+   Color values come from exactly two places:
+     - --vg-* tokens (vars-dark.css / vars-light.css)
+     - SillyTavern's --SmartTheme* variables, which the theme JSON owns —
+       so the built-in theme-editor color pickers keep working.
+   Where a surface needs a *more opaque* version of a picker color, we use
+   relative color syntax: rgb(from var(--SmartThemeX) r g b / N%). ST's own
+   stylesheet already relies on relative colors (hsl(from ...)), so support
+   is a given for any browser that runs ST. A plain var() fallback is always
+   declared first for safety.
+
+   Grouped by surface; selectors verified against SillyTavern public/style.css
+   and public/css/. If an upstream release breaks a section, it breaks in
+   isolation and is easy to patch.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   0. Shared non-color tokens + typography
+   -------------------------------------------------------------------------- */
+:root {
+    /* Tight, contemporary radii — big rounds read dated fast */
+    --vg-radius-s: 6px;
+    --vg-radius-m: 9px;
+    --vg-radius-l: 12px;
+    --vg-radius-pill: 999px;
+
+    --vg-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --vg-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --vg-dur-fast: 140ms;
+    --vg-dur-med: 260ms;
+    --vg-dur-slow: 400ms;
+
+    /* Inter first if installed locally, then per-platform stacks.
+       "Noto Sans" is SillyTavern's bundled default, so the floor matches ST.
+       No web fonts are ever loaded by this theme. */
+    --mainFontFamily: "Inter", "SF Pro Display", "Segoe UI", "Noto Sans", "Roboto", system-ui, sans-serif;
+
+    /* Faint grain so large glass surfaces don't band; opacity baked into the
+       SVG. Shared by both variants. */
+    --vg-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+.mes_text {
+    line-height: 1.6;
+}
+
+/* A touch more height for the top bar and input bar — ST derives both bar
+   heights (and the chat area calc) from these padding vars, so this is the
+   safe single knob for it */
+:root {
+    --topBarBlockPadding: calc(var(--mainFontSize) / 3 + 6px);
+    --bottomFormBlockPadding: calc(var(--mainFontSize) / 2.5 + 6px);
+}
+
+/* --------------------------------------------------------------------------
+   0b. Ambient backdrop
+   Painted on a pseudo-element ABOVE the background image layer (#bg1 gets its
+   image via inline style, so this never fights the user's background picker).
+   With no background set it turns the void into a designed gradient field;
+   with one set it acts as a color grade tying the art to the accent.
+   -------------------------------------------------------------------------- */
+#bg1::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        var(--vg-noise),
+        radial-gradient(ellipse 85% 65% at 12% -5%, var(--vg-ambient-a), transparent 62%),
+        radial-gradient(ellipse 75% 60% at 88% 105%, var(--vg-ambient-b), transparent 65%),
+        radial-gradient(ellipse 55% 45% at 80% 8%, var(--vg-ambient-c), transparent 70%),
+        radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, var(--vg-vignette) 100%);
+}
+
+/* --------------------------------------------------------------------------
+   1. Messages (bubble mode)
+   Card backgrounds intentionally stay on ST's own bubble rules
+   (--SmartThemeUserMesBlurTintColor / --SmartThemeBotMesBlurTintColor) so the
+   theme-editor pickers keep working; we add shape, hairline and depth.
+   Flat and document chat styles are deliberately left untouched so the theme
+   degrades gracefully there.
+   -------------------------------------------------------------------------- */
+body.bubblechat #chat .mes {
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    border-radius: var(--vg-radius-l);
+    border: 1px solid var(--vg-glass-border);
+    box-shadow: var(--vg-shadow-1), inset 0 1px 0 var(--vg-glass-highlight);
+}
+
+/* Asymmetric silhouette: user messages sit off the left edge, replies off the
+   right. ST's .mes is width:100%, so each margin needs a matching width
+   reduction or the card overflows and gets clipped. */
+body.bubblechat #chat .mes[is_user="true"] {
+    border-color: var(--vg-accent-border);
+    background-image: linear-gradient(135deg, var(--vg-accent-soft), transparent 55%);
+    margin-left: clamp(16px, 7%, 110px);
+    width: calc(100% - clamp(16px, 7%, 110px));
+}
+
+body.bubblechat #chat .mes:not([is_user="true"]) {
+    margin-right: clamp(16px, 7%, 110px);
+    width: calc(100% - clamp(16px, 7%, 110px));
+}
+
+/* ST pads the last message's avatar column by a full avatar height to make
+   room for swipe arrows — but user/system messages never get swipes, so
+   there the reservation is just dead space under one-line replies */
+.last_mes[is_user="true"] .mesAvatarWrapper,
+.last_mes[is_system="true"] .mesAvatarWrapper {
+    padding-bottom: 0;
+}
+
+.mes .ch_name .name_text {
+    color: var(--vg-accent-strong);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.mes .avatar img {
+    border: 1px solid var(--vg-glass-border);
+    box-shadow: 0 0 0 2px var(--vg-accent-soft);
+}
+
+/* --------------------------------------------------------------------------
+   2. Chat column + top bar
+   -------------------------------------------------------------------------- */
+#chat {
+    border-radius: 0 0 var(--vg-radius-l) var(--vg-radius-l);
+}
+
+/* Floating glass island. The icon row (#top-settings-holder) must shift with
+   the bar — it's a separate element layered on top — so the float costs a
+   6px offset; the top-fade on #bg1::after keeps the gap above from reading
+   as a raw band over light backgrounds. */
+#top-bar {
+    top: 6px;
+    width: var(--sheldWidth);
+    border: 1px solid var(--vg-glass-border);
+    border-radius: var(--vg-radius-l);
+    background-color: var(--SmartThemeBlurTintColor);
+    background-image: linear-gradient(to bottom,
+            rgb(from var(--SmartThemeBlurTintColor) r g b / 35%),
+            transparent);
+    box-shadow: var(--vg-shadow-1);
+}
+
+/* translateY, NOT margin-top: the holder is the body's first in-flow child,
+   so a top margin collapses through and shifts the whole body down, exposing
+   bare canvas as a stripe above the background layer */
+#top-settings-holder {
+    transform: translateY(6px);
+    align-items: center;
+}
+
+/* Calm the icon row; the open/hover state carries the accent instead. */
+#top-settings-holder .drawer-icon {
+    opacity: 0.65;
+}
+
+#top-settings-holder .drawer-icon:hover,
+#top-settings-holder .drawer-icon.openIcon {
+    opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   3. Drawers and side panels
+   .fillLeft / .fillRight nav panels carry .drawer-content too, so this
+   covers them as well.
+   -------------------------------------------------------------------------- */
+.drawer-content {
+    background-color: var(--SmartThemeBlurTintColor);
+    background-color: rgb(from var(--SmartThemeBlurTintColor) r g b / 88%);
+    border: 1px solid var(--vg-glass-border);
+    border-radius: var(--vg-radius-l);
+    box-shadow: var(--vg-shadow-2), inset 0 1px 0 var(--vg-glass-highlight);
+}
+
+/* ST styles .closedIcon/.openIcon hovers with higher specificity, match it */
+.drawer-icon.closedIcon:hover,
+.drawer-icon.openIcon:hover {
+    color: var(--vg-accent-strong);
+    opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   4. Input area
+   The capsule detaches from the chat column; focus glow lives on a
+   pre-rendered ::after so only opacity ever animates.
+   #send_textarea's border-top is ST's script progress bar — left alone.
+   -------------------------------------------------------------------------- */
+#send_form {
+    position: relative;
+    margin-top: 6px;
+    border: 1px solid var(--vg-glass-border);
+    border-radius: var(--vg-radius-l);
+    box-shadow: var(--vg-shadow-1), inset 0 1px 0 var(--vg-glass-highlight);
+}
+
+#send_form::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: 0 0 0 1px var(--vg-accent-glow), 0 0 18px var(--vg-accent-glow);
+    opacity: 0;
+}
+
+#send_form:has(#send_textarea:focus-visible) {
+    border-color: var(--vg-accent-border);
+    outline: none;
+}
+
+#send_form:has(#send_textarea:focus-visible)::after {
+    opacity: 1;
+}
+
+/* Typing-bar icons get the chip treatment. The hit-area stays on ST's
+   --bottomFormBlockSize (it matches the textarea height; overriding it
+   knocks the whole bar out of vertical alignment) — only the glyph inside
+   shrinks, which evens out the optical weight across the row. */
+#leftSendForm > div,
+#rightSendForm > div:not(.mes_stop) {
+    font-size: calc(var(--bottomFormIconSize) * 0.78);
+    border-radius: var(--vg-radius-s);
+    opacity: 0.7;
+}
+
+#leftSendForm > div:hover,
+#rightSendForm > div:not(.mes_stop):hover {
+    background-color: var(--vg-accent-soft);
+    opacity: 1;
+}
+
+/* Filled accent send button. Extra ancestor id outranks ST's
+   #rightSendForm>div sizing/color rules. */
+#rightSendForm > #send_but {
+    background-image: linear-gradient(135deg, var(--vg-accent), var(--vg-accent-2));
+    color: var(--vg-on-accent);
+    border-radius: var(--vg-radius-pill);
+    opacity: 1;
+    box-shadow: 0 2px 12px var(--vg-accent-glow);
+}
+
+#rightSendForm > #send_but:hover {
+    color: var(--vg-on-accent);
+    box-shadow: 0 2px 16px var(--vg-accent-glow);
+}
+
+/* --------------------------------------------------------------------------
+   5. Buttons and fields
+   -------------------------------------------------------------------------- */
+.menu_button {
+    filter: none; /* ST applies grayscale(0.5) */
+    background-color: var(--vg-glass-inset);
+    border: 1px solid var(--vg-glass-border);
+    border-radius: var(--vg-radius-s);
+    padding: 4px 8px;
+}
+
+.menu_button:hover {
+    background-color: var(--vg-accent-soft);
+    border-color: var(--vg-accent-border);
+}
+
+/* ST paints EVERY textarea and slider value box with --black30a — that flat
+   gray is the single most dated thing in the stock panels. #send_textarea is
+   excluded: it must stay transparent inside the input capsule. */
+.text_pole,
+select,
+.edit_textarea,
+textarea:not(#send_textarea),
+.neo-range-input {
+    background-color: var(--vg-field-bg);
+    border: 1px solid var(--vg-glass-border);
+    border-radius: var(--vg-radius-s);
+}
+
+textarea:not(#send_textarea):focus-visible {
+    border-color: var(--vg-accent);
+}
+
+/* Pairs with the slider above it; keep the joined silhouette */
+.neo-range-input {
+    border-radius: 0 0 var(--vg-radius-s) var(--vg-radius-s);
+}
+
+/* The slider track is a solid bar of --SmartThemeBodyColor (= dark gray on
+   light themes). !important required — ST's own rule uses it. */
+.neo-range-slider {
+    background-color: var(--vg-accent-glow) !important;
+    border-radius: var(--vg-radius-s) var(--vg-radius-s) 0 0 !important;
+    box-shadow: none !important;
+}
+
+.edit_textarea:focus {
+    border-color: var(--vg-accent);
+    outline: 1px solid var(--vg-accent-glow);
+}
+
+/* ST paints section headers with a gray white→black gradient
+   (.standoutHeader, extensions/user-settings headers) — replace with quiet
+   accent glass. Selector list mirrors ST's own rule to win by cascade. */
+#extensions_settings .inline-drawer-toggle.inline-drawer-header,
+#extensions_settings2 .inline-drawer-toggle.inline-drawer-header,
+#user-settings-block h4,
+.standoutHeader {
+    background-image: none;
+    background-color: var(--vg-accent-soft);
+    border: 1px solid var(--vg-glass-border);
+    border-radius: var(--vg-radius-s);
+}
+
+.standoutHeader~.inline-drawer-content {
+    background-color: var(--vg-field-bg);
+    border-color: var(--vg-glass-border);
+    border-radius: var(--vg-radius-s);
+}
+
+.text_pole:focus,
+select:focus {
+    border-color: var(--vg-accent);
+    outline: 1px solid var(--vg-accent-glow);
+    outline-offset: 0px;
+}
+
+/* --------------------------------------------------------------------------
+   5b. Form controls
+   ST draws checkboxes itself (appearance: none + ::before tick), so these
+   restyle the same machinery: quiet glass when unchecked, solid accent when
+   checked. Range thumbs go accent too — across the settings panels this is
+   what makes the theme read as one designed system instead of a reskin.
+   -------------------------------------------------------------------------- */
+input[type="checkbox"] {
+    border-radius: 4px;
+    border: 1px solid var(--vg-glass-border);
+    background-color: var(--vg-glass-inset);
+    outline: none;
+    box-shadow: none;
+    filter: none;
+}
+
+input[type="checkbox"]:checked {
+    background-color: var(--vg-accent);
+    border-color: var(--vg-accent);
+}
+
+input[type="checkbox"]::before {
+    box-shadow: inset 1em 1em var(--vg-on-accent);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    background: var(--vg-accent);
+    border: 2px solid var(--vg-on-accent);
+    box-shadow: 0 0 6px var(--vg-accent-glow);
+}
+
+.neo-range-slider {
+    /* ST dims sliders to brightness(0.75); keep them crisp */
+    filter: none;
+}
+
+/* --------------------------------------------------------------------------
+   5c. Settings declutter
+   Each collapsible section inside a panel becomes a soft card, giving the
+   dense drawers visual grouping and breathing room.
+   -------------------------------------------------------------------------- */
+.drawer-content .inline-drawer {
+    border: 1px solid var(--vg-glass-border);
+    border-radius: var(--vg-radius-m);
+    background-color: var(--SmartThemeBlurTintColor);
+    background-color: rgb(from var(--SmartThemeBlurTintColor) r g b / 30%);
+    padding: 6px 10px;
+    margin-bottom: 8px;
+}
+
+/* Nested sections keep the grouping but drop the chrome */
+.drawer-content .inline-drawer .inline-drawer {
+    border: none;
+    background: none;
+    padding: 2px 0;
+    margin-bottom: 2px;
+}
+
+.inline-drawer-toggle.inline-drawer-header {
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   6. Scrollbars
+   Chromium ignores ::-webkit-scrollbar once scrollbar-color is set, so the
+   standard properties are applied only where the webkit pseudos don't exist.
+   -------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-thumb:vertical,
+::-webkit-scrollbar-thumb:horizontal {
+    background-color: var(--vg-scrollbar-thumb);
+    box-shadow: none;
+    border-radius: var(--vg-radius-pill);
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:vertical:hover,
+::-webkit-scrollbar-thumb:horizontal:hover {
+    background-color: var(--vg-scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-track:hover {
+    background-color: transparent;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--vg-scrollbar-thumb) transparent;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   7. Popups
+   ST's popup machinery owns the animation property and its duration
+   (--popup-animation-speed, zeroed under reduced motion). We only replace
+   the frames of its pop-in/pop-out keyframes: the stock ones are a scaleY
+   squash; these are a soft fade + scale.
+   -------------------------------------------------------------------------- */
+dialog.popup {
+    background-color: var(--SmartThemeBlurTintColor);
+    background-color: rgb(from var(--SmartThemeBlurTintColor) r g b / 92%);
+    border: 1px solid var(--vg-glass-border);
+    border-radius: var(--vg-radius-l);
+    box-shadow: var(--vg-shadow-2), inset 0 1px 0 var(--vg-glass-highlight);
+}
+
+dialog.popup::backdrop {
+    background-color: var(--vg-backdrop);
+}
+
+@keyframes pop-in {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes pop-out {
+    from {
+        opacity: 1;
+        transform: none;
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.96) translateY(6px);
+    }
+}
+
+/* --------------------------------------------------------------------------
+   8. Options menu, extensions menu, list groups
+   -------------------------------------------------------------------------- */
+#options,
+#extensionsMenu,
+.popup .popper-modal {
+    background-color: var(--SmartThemeBlurTintColor);
+    background-color: rgb(from var(--SmartThemeBlurTintColor) r g b / 88%);
+    border-radius: var(--vg-radius-m);
+    box-shadow: var(--vg-shadow-2);
+}
+
+.options-content,
+.list-group {
+    border-color: var(--vg-glass-border);
+    border-radius: var(--vg-radius-m);
+}
+
+.options-content a,
+.list-group-item {
+    border-radius: var(--vg-radius-s);
+    opacity: 0.75; /* ST dims these to 0.5; keep them a bit more present */
+}
+
+.options-content a:hover,
+.list-group-item:hover {
+    background-color: var(--vg-accent-soft);
+    opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   9. Toasts
+   Selectors mirror ST's `body #toast-container ...` rules exactly so cascade
+   order decides. Backgrounds stay saturated because toastr's text and icons
+   are white; values are shared across both variants for the same reason.
+   -------------------------------------------------------------------------- */
+body #toast-container>div {
+    border-radius: var(--vg-radius-m);
+    border: 1px solid var(--vg-glass-border);
+    box-shadow: var(--vg-shadow-2);
+}
+
+body #toast-container .toast-success {
+    background-color: rgba(52, 138, 92, 0.93);
+}
+
+body #toast-container .toast-error {
+    background-color: rgba(178, 70, 74, 0.93);
+}
+
+body #toast-container .toast-info {
+    background-color: rgba(86, 98, 196, 0.93);
+}
+
+body #toast-container .toast-warning {
+    background-color: rgba(190, 132, 50, 0.93);
+}
+
+/* --------------------------------------------------------------------------
+   10. Message content (markdown)
+   `q` quote color stays on the theme JSON's quote_text_color; highlight.js
+   keeps ownership of code colors, we only shape the panel.
+   -------------------------------------------------------------------------- */
+.mes_text pre {
+    border-radius: var(--vg-radius-s);
+    border: 1px solid var(--vg-glass-border);
+}
+
+.mes_text pre code {
+    border-radius: var(--vg-radius-s);
+}
+
+.mes_text blockquote {
+    border-left: 3px solid var(--vg-accent);
+    border-radius: 0 var(--vg-radius-s) var(--vg-radius-s) 0;
+    padding: 6px 10px;
+    background-color: var(--vg-quote-bg);
+}
+
+/* --------------------------------------------------------------------------
+   11. Message meta + actions
+   Visibility/reveal of buttons and swipes is owned by ST (style.css swipe
+   fade logic uses allow-discrete transitions) — we restyle, never re-reveal.
+   -------------------------------------------------------------------------- */
+.mes .mes_timer,
+.mes .mesIDDisplay,
+.mes .tokenCounterDisplay,
+.mes .timestamp {
+    opacity: 0.45;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.mes_buttons>div:hover,
+.extraMesButtons>div:hover {
+    color: var(--vg-accent-strong);
+}
+
+.swipe_left:hover,
+.swipe_right:hover,
+.swipes-counter.swipe-picker-enabled:hover {
+    color: var(--vg-accent-strong);
+}
+
+/* --------------------------------------------------------------------------
+   12. Character list
+   -------------------------------------------------------------------------- */
+.character_select,
+.group_select,
+.bogus_folder_select {
+    border-radius: var(--vg-radius-m);
+}
+
+.character_select:hover,
+.group_select:hover,
+.bogus_folder_select:hover,
+.avatar-container:hover {
+    background-color: var(--vg-accent-soft);
+}
+
+.character_select:hover .avatar img,
+.group_select:hover .avatar img {
+    box-shadow: 0 0 0 2px var(--vg-accent-glow);
+}
+
+/* The thumbnails themselves are user content (a theme can't redraw them),
+   but consistent framing makes even rough card art look curated */
+.character_select .avatar img,
+.group_select .avatar img {
+    border: 1px solid var(--vg-glass-border);
+    box-shadow: 0 0 0 2px var(--vg-accent-soft), var(--vg-shadow-1);
+}
+
+.character_select,
+.group_select,
+.bogus_folder_select {
+    padding: 4px 6px;
+}
+
+.character_select .ch_name {
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   13. Fast UI mode (no blur)
+   ST strips every backdrop-filter under body.no-blur; the translucent tints
+   need to firm up so panels stay readable over busy backgrounds. !important
+   only where ST's own no-blur override uses it.
+   -------------------------------------------------------------------------- */
+body.no-blur #top-bar,
+body.no-blur #send_form {
+    background-color: var(--SmartThemeBlurTintColor) !important;
+    background-color: rgb(from var(--SmartThemeBlurTintColor) r g b / 96%) !important;
+}
+
+body.no-blur .drawer-content,
+body.no-blur dialog.popup,
+body.no-blur #options,
+body.no-blur #extensionsMenu {
+    background-color: var(--SmartThemeBlurTintColor);
+    background-color: rgb(from var(--SmartThemeBlurTintColor) r g b / 96%);
+}
+
+/* --------------------------------------------------------------------------
+   13b. Icon system
+   ST renders icons as Font Awesome glyphs via ::before content. For the ~20
+   highest-visibility icons we blank the glyph and draw a Lucide outline icon
+   (https://lucide.dev, ISC license) as a currentColor mask — embedded data
+   URIs, nothing remote. Each replacement is guarded by the element's fa-*
+   class: if an ST update changes an icon's class, that element silently
+   falls back to its FA glyph instead of going blank.
+   -------------------------------------------------------------------------- */
+:root {
+    --vg-ic-sliders: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='21' x2='14' y1='4' y2='4'/%3E%3Cline x1='10' x2='3' y1='4' y2='4'/%3E%3Cline x1='21' x2='12' y1='12' y2='12'/%3E%3Cline x1='8' x2='3' y1='12' y2='12'/%3E%3Cline x1='21' x2='16' y1='20' y2='20'/%3E%3Cline x1='12' x2='3' y1='20' y2='20'/%3E%3Cline x1='14' x2='14' y1='2' y2='6'/%3E%3Cline x1='8' x2='8' y1='10' y2='14'/%3E%3Cline x1='16' x2='16' y1='18' y2='22'/%3E%3C/svg%3E");
+    --vg-ic-plug: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z'/%3E%3Cpath d='m2 22 3-3'/%3E%3Cpath d='M7.5 13.5 10 11'/%3E%3Cpath d='M10.5 16.5 13 14'/%3E%3Cpath d='m18 3-4 4h6l-4 4'/%3E%3C/svg%3E");
+    --vg-ic-type: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 7 4 4 20 4 20 7'/%3E%3Cline x1='9' x2='15' y1='20' y2='20'/%3E%3Cline x1='12' x2='12' y1='4' y2='20'/%3E%3C/svg%3E");
+    --vg-ic-book: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z'/%3E%3Cpath d='M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z'/%3E%3C/svg%3E");
+    --vg-ic-settings: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+    --vg-ic-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='2' ry='2'/%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Cpath d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'/%3E%3C/svg%3E");
+    --vg-ic-blocks: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='7' height='7' x='14' y='3' rx='1'/%3E%3Cpath d='M10 21V8a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1H3'/%3E%3C/svg%3E");
+    --vg-ic-user: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='5'/%3E%3Cpath d='M20 21a8 8 0 0 0-16 0'/%3E%3C/svg%3E");
+    --vg-ic-users: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 21a8 8 0 0 0-16 0'/%3E%3Ccircle cx='10' cy='8' r='5'/%3E%3Cpath d='M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3'/%3E%3C/svg%3E");
+    --vg-ic-menu: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='4' x2='20' y1='12' y2='12'/%3E%3Cline x1='4' x2='20' y1='6' y2='6'/%3E%3Cline x1='4' x2='20' y1='18' y2='18'/%3E%3C/svg%3E");
+    --vg-ic-send: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z'/%3E%3Cpath d='M6 12h16'/%3E%3C/svg%3E");
+    --vg-ic-chevron-l: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
+    --vg-ic-chevron-r: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+    --vg-ic-ellipsis: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='1'/%3E%3Ccircle cx='19' cy='12' r='1'/%3E%3Ccircle cx='5' cy='12' r='1'/%3E%3C/svg%3E");
+    --vg-ic-pencil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z'/%3E%3Cpath d='m15 5 4 4'/%3E%3C/svg%3E");
+    --vg-ic-wand: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72'/%3E%3Cpath d='m14 7 3 3'/%3E%3Cpath d='M5 6v4'/%3E%3Cpath d='M19 14v4'/%3E%3Cpath d='M10 2v2'/%3E%3Cpath d='M7 8H3'/%3E%3Cpath d='M21 16h-4'/%3E%3Cpath d='M11 3H9'/%3E%3C/svg%3E");
+    --vg-ic-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='11' x='3' y='11' rx='2' ry='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E");
+    --vg-ic-lock-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='11' x='3' y='11' rx='2' ry='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 9.9-1'/%3E%3C/svg%3E");
+    --vg-ic-ghost: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 10h.01'/%3E%3Cpath d='M15 10h.01'/%3E%3Cpath d='M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8'/%3E%3C/svg%3E");
+    --vg-ic-arrow-r: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='m12 5 7 7-7 7'/%3E%3C/svg%3E");
+    --vg-ic-stop: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Crect x='9' y='9' width='6' height='6' rx='1'/%3E%3C/svg%3E");
+    --vg-ic-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+    --vg-ic-copy: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='14' height='14' x='8' y='8' rx='2' ry='2'/%3E%3Cpath d='M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2'/%3E%3C/svg%3E");
+    --vg-ic-bulb: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5'/%3E%3Cpath d='M9 18h6'/%3E%3Cpath d='M10 22h4'/%3E%3C/svg%3E");
+    --vg-ic-trash: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6'/%3E%3Cpath d='M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'/%3E%3Cline x1='10' x2='10' y1='11' y2='17'/%3E%3Cline x1='14' x2='14' y1='11' y2='17'/%3E%3C/svg%3E");
+    --vg-ic-chevron-u: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m18 15-6-6-6 6'/%3E%3C/svg%3E");
+    --vg-ic-chevron-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    --vg-ic-x: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6 6 18'/%3E%3Cpath d='m6 6 12 12'/%3E%3C/svg%3E");
+}
+
+/* Which icon each element gets (set on the parent, read by ::before) */
+.drawer-icon.fa-sliders { --vg-ic: var(--vg-ic-sliders); }
+.drawer-icon.fa-plug-circle-exclamation,
+.drawer-icon.fa-plug { --vg-ic: var(--vg-ic-plug); }
+.drawer-icon.fa-font { --vg-ic: var(--vg-ic-type); }
+.drawer-icon.fa-book-atlas { --vg-ic: var(--vg-ic-book); }
+.drawer-icon.fa-user-cog { --vg-ic: var(--vg-ic-settings); }
+.drawer-icon.fa-panorama { --vg-ic: var(--vg-ic-image); }
+.drawer-icon.fa-cubes { --vg-ic: var(--vg-ic-blocks); }
+.drawer-icon.fa-face-smile { --vg-ic: var(--vg-ic-user); }
+.drawer-icon.fa-address-card { --vg-ic: var(--vg-ic-users); }
+#options_button.fa-bars { --vg-ic: var(--vg-ic-menu); }
+#send_but.fa-paper-plane { --vg-ic: var(--vg-ic-send); }
+.swipe_left.fa-chevron-left { --vg-ic: var(--vg-ic-chevron-l); }
+.swipe_right.fa-chevron-right { --vg-ic: var(--vg-ic-chevron-r); }
+.mes_button.extraMesButtonsHint.fa-ellipsis { --vg-ic: var(--vg-ic-ellipsis); }
+.mes_button.mes_edit.fa-pencil { --vg-ic: var(--vg-ic-pencil); }
+#extensionsMenuButton.fa-magic-wand-sparkles { --vg-ic: var(--vg-ic-wand); }
+.right_menu_button.fa-lock { --vg-ic: var(--vg-ic-lock); }
+.right_menu_button.fa-unlock { --vg-ic: var(--vg-ic-lock-open); }
+#mes_impersonate.fa-user-secret { --vg-ic: var(--vg-ic-ghost); }
+#mes_continue.fa-arrow-right { --vg-ic: var(--vg-ic-arrow-r); }
+#mes_stop > .fa-circle-stop { --vg-ic: var(--vg-ic-stop); }
+.mes_edit_done.fa-check { --vg-ic: var(--vg-ic-check); }
+.mes_edit_copy.fa-copy { --vg-ic: var(--vg-ic-copy); }
+.mes_edit_add_reasoning.fa-lightbulb { --vg-ic: var(--vg-ic-bulb); }
+.mes_edit_delete.fa-trash-can { --vg-ic: var(--vg-ic-trash); }
+.mes_edit_up.fa-chevron-up { --vg-ic: var(--vg-ic-chevron-u); }
+.mes_edit_down.fa-chevron-down { --vg-ic: var(--vg-ic-chevron-d); }
+.mes_edit_cancel.fa-xmark { --vg-ic: var(--vg-ic-x); }
+
+/* Replacement mechanics — selector list must mirror the mapping above so an
+   unmapped icon never gets a blank mask */
+.drawer-icon.fa-sliders::before,
+.drawer-icon.fa-plug-circle-exclamation::before,
+.drawer-icon.fa-plug::before,
+.drawer-icon.fa-font::before,
+.drawer-icon.fa-book-atlas::before,
+.drawer-icon.fa-user-cog::before,
+.drawer-icon.fa-panorama::before,
+.drawer-icon.fa-cubes::before,
+.drawer-icon.fa-face-smile::before,
+.drawer-icon.fa-address-card::before,
+#options_button.fa-bars::before,
+#send_but.fa-paper-plane::before,
+.swipe_left.fa-chevron-left::before,
+.swipe_right.fa-chevron-right::before,
+.mes_button.extraMesButtonsHint.fa-ellipsis::before,
+.mes_button.mes_edit.fa-pencil::before,
+#extensionsMenuButton.fa-magic-wand-sparkles::before,
+.right_menu_button.fa-lock::before,
+.right_menu_button.fa-unlock::before,
+#mes_impersonate.fa-user-secret::before,
+#mes_continue.fa-arrow-right::before,
+#mes_stop > .fa-circle-stop::before,
+.mes_edit_done.fa-check::before,
+.mes_edit_copy.fa-copy::before,
+.mes_edit_add_reasoning.fa-lightbulb::before,
+.mes_edit_delete.fa-trash-can::before,
+.mes_edit_up.fa-chevron-up::before,
+.mes_edit_down.fa-chevron-down::before,
+.mes_edit_cancel.fa-xmark::before {
+    content: '';
+    display: inline-block;
+    width: 1.1em;
+    height: 1.1em;
+    background-color: currentColor;
+    -webkit-mask: var(--vg-ic) center / contain no-repeat;
+    mask: var(--vg-ic) center / contain no-repeat;
+    vertical-align: -0.17em;
+}
+
+/* The send plane is diagonal, so at 1.1em its tips reach the circular
+   button's clip edge — size it down within the filled circle */
+#send_but.fa-paper-plane::before {
+    width: 0.8em;
+    height: 0.8em;
+}
+
+/* Chip treatment: every top-bar icon sits in a consistent rounded hit-area;
+   the open drawer carries an accent-filled chip. The glyph is scaled down so
+   the chip's outer box stays within --topBarBlockSize (ST sizes the bar off
+   the raw glyph; an untouched font-size would overflow the bar). */
+.drawer-icon {
+    display: inline-grid;
+    place-items: center;
+    font-size: calc(var(--topBarIconSize) * 0.62);
+    width: 1.75em;
+    height: 1.75em;
+    padding: 0;
+    border-radius: var(--vg-radius-m);
+    border: 1px solid transparent;
+}
+
+.drawer-icon:hover {
+    background-color: var(--vg-accent-soft);
+    border-color: var(--vg-glass-border);
+}
+
+.drawer-icon.openIcon {
+    background-color: var(--vg-accent-soft);
+    border-color: var(--vg-accent-border);
+    color: var(--vg-accent-strong);
+}
+
+/* --------------------------------------------------------------------------
+   13c. Calm chrome
+   Secondary controls rest dimmed and sharpen on approach. Pure opacity —
+   nothing moves, nothing is hidden, hit-areas are unchanged.
+   -------------------------------------------------------------------------- */
+.mes .mes_buttons {
+    opacity: 0.45;
+}
+
+.mes:hover .mes_buttons,
+.mes .mes_buttons:focus-within {
+    opacity: 1;
+}
+
+.drawer-content .range-block,
+.drawer-content .checkbox_label {
+    opacity: 0.78;
+}
+
+.drawer-content .range-block:hover,
+.drawer-content .range-block:focus-within,
+.drawer-content .checkbox_label:hover,
+.drawer-content .checkbox_label:focus-within {
+    opacity: 1;
+}
+
+/* Micro-label typography: setting names become small uppercase letterspaced
+   labels — the strongest single "designed system" signal in dense panels */
+.drawer-content .range-block-title,
+.drawer-content h4,
+.drawer-content h5 {
+    font-size: 0.74em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    opacity: 0.8;
+}
+
+/* --------------------------------------------------------------------------
+   14. Motion
+   Everything here is transform/opacity only and double-gated: rules sit
+   behind body:not(.reduced-motion) (ST adds the class for both its setting
+   and the OS preference), and a prefers-reduced-motion media query below is
+   the belt-and-braces kill switch.
+   -------------------------------------------------------------------------- */
+@keyframes vg-rise-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes vg-drawer-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Toast entrance is transform-only: toastr runs its own jQuery opacity fade
+   and a keyframe touching opacity would fight it. */
+@keyframes vg-toast-in {
+    from {
+        transform: translateY(-8px);
+    }
+
+    to {
+        transform: none;
+    }
+}
+
+body:not(.reduced-motion) #chat .mes {
+    animation: vg-rise-in 280ms var(--vg-ease-out);
+}
+
+/* Keyframes only — ST drives drawer open/close geometry (height transitions
+   with allow-discrete); a transition on height/display here would fight it. */
+body:not(.reduced-motion) .drawer-content.openDrawer {
+    animation: vg-drawer-in 220ms var(--vg-ease-out);
+}
+
+body:not(.reduced-motion) #toast-container>div {
+    animation: vg-toast-in 240ms var(--vg-ease-out);
+}
+
+body:not(.reduced-motion) #send_but,
+body:not(.reduced-motion) .drawer-icon {
+    transition: transform var(--vg-dur-fast) var(--vg-ease-spring);
+}
+
+body:not(.reduced-motion) #send_but:hover {
+    transform: scale(1.08);
+}
+
+body:not(.reduced-motion) #send_but:active {
+    transform: scale(0.94);
+}
+
+body:not(.reduced-motion) .drawer-icon:hover {
+    transform: scale(1.1);
+}
+
+body:not(.reduced-motion) .menu_button {
+    transition:
+        background-color var(--vg-dur-fast) var(--vg-ease-out),
+        border-color var(--vg-dur-fast) var(--vg-ease-out),
+        transform var(--vg-dur-fast) var(--vg-ease-out);
+}
+
+body:not(.reduced-motion) .menu_button:hover {
+    transform: translateY(-1px);
+}
+
+body:not(.reduced-motion) #send_form::after {
+    transition: opacity 200ms var(--vg-ease-out);
+}
+
+body:not(.reduced-motion) .drawer-icon {
+    transition:
+        transform var(--vg-dur-fast) var(--vg-ease-spring),
+        background-color var(--vg-dur-fast) var(--vg-ease-out),
+        border-color var(--vg-dur-fast) var(--vg-ease-out);
+}
+
+body:not(.reduced-motion) .mes .mes_buttons,
+body:not(.reduced-motion) .drawer-content .range-block,
+body:not(.reduced-motion) .drawer-content .checkbox_label {
+    transition: opacity var(--vg-dur-fast) var(--vg-ease-out);
+}
+
+body:not(.reduced-motion) #leftSendForm > div,
+body:not(.reduced-motion) #rightSendForm > div:not(.mes_stop) {
+    transition:
+        opacity var(--vg-dur-fast) var(--vg-ease-out),
+        background-color var(--vg-dur-fast) var(--vg-ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    #chat .mes,
+    .drawer-content.openDrawer,
+    #toast-container>div {
+        animation: none !important;
+    }
+
+    #send_but,
+    .drawer-icon,
+    .menu_button,
+    #send_form::after,
+    .mes .mes_buttons,
+    .drawer-content .range-block,
+    .drawer-content .checkbox_label,
+    #leftSendForm > div,
+    #rightSendForm > div:not(.mes_stop) {
+        transition: none !important;
+    }
+}

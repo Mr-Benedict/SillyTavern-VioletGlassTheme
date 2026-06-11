@@ -1,0 +1,22 @@
+{
+    "name": "Violet Glass Dark",
+    "blur_strength": 10,
+    "main_text_color": "rgba(230, 232, 242, 1)",
+    "italics_text_color": "rgba(188, 180, 230, 1)",
+    "underline_text_color": "rgba(167, 139, 250, 1)",
+    "quote_text_color": "rgba(178, 158, 255, 1)",
+    "blur_tint_color": "rgba(20, 18, 32, 0.55)",
+    "chat_tint_color": "rgba(12, 10, 22, 0.25)",
+    "user_mes_blur_tint_color": "rgba(70, 54, 160, 0.55)",
+    "bot_mes_blur_tint_color": "rgba(26, 24, 44, 0.6)",
+    "shadow_color": "rgba(0, 0, 0, 0.45)",
+    "shadow_width": 2,
+    "border_color": "rgba(255, 255, 255, 0.12)",
+    "font_scale": 1,
+    "fast_ui_mode": false,
+    "noShadows": false,
+    "avatar_style": 3,
+    "chat_display": 1,
+    "chat_width": 60,
+    "custom_css": ""
+}
