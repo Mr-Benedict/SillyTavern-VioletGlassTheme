@@ -108,6 +108,12 @@ body.bubblechat #chat .mes:not([is_user="true"]) {
     width: calc(100% - clamp(16px, 7%, 110px) - 10px);
 }
 
+/* ST pins the last bubble flush against the input bar with
+   `.last_mes { margin-bottom: 0 !important }` — match the side gaps */
+body.bubblechat #chat .last_mes {
+    margin-bottom: 10px !important;
+}
+
 /* ST pads the last message's avatar column by a full avatar height to make
    room for swipe arrows — but user/system messages never get swipes, so
    there the reservation is just dead space under one-line replies */
